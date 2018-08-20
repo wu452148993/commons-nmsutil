@@ -17,6 +17,8 @@ import cc.commons.util.interfaces.IFilter;
 import cc.commons.util.reflect.ClassUtil;
 import cc.commons.util.reflect.FieldUtil;
 import cc.commons.util.reflect.MethodUtil;
+import cc.commons.util.reflect.filter.FieldFilter;
+import cc.commons.util.reflect.filter.MethodFilter;
 
 public class NBTUtil{
 
@@ -87,7 +89,7 @@ public class NBTUtil{
                 return pObj.getReturnType().getSimpleName().equals("NBTTagCompound")&&pObj.getParameterTypes().length==0;
             }
 
-        },true).get(0);
+        },true).oneGet();
         clazz_NBTTagCompound=method_NMSItemStack_getTag.getReturnType();
         String tPacketPath=ClassUtil.getClassPacket(clazz_NBTTagCompound.getName());
         clazz_NBTBase=ClassUtil.getClass(tPacketPath+"NBTBase");
@@ -103,34 +105,38 @@ public class NBTUtil{
         clazz_NBTTagIntArray=ClassUtil.getClass(tPacketPath+"NBTTagIntArray");
         clazz_NBTTagList=ClassUtil.getClass(tPacketPath+"NBTTagList");
 
-        method_NBTBase_getTypeId=MethodUtil.getUnknowMethod(clazz_NBTBase,byte.class,true).get(0);
-        method_NBTBase_copy=MethodUtil.getUnknowMethod(clazz_NBTBase,clazz_NBTBase,true).get(0);
-        method_NBTTagCompound_isEmpty=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,boolean.class,true).get(0);
-        method_NBTTagCompound_hasKeyOfType=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,boolean.class,new Class<?>[]{String.class,int.class},true).get(0);
-        method_NBTTagCompound_get=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,clazz_NBTBase,String.class,true).get(0);
-        method_NBTTagCompound_getInt=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,int.class,String.class,true).get(0);
-        method_NBTTagCompound_getString=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,String.class,String.class,true).get(0);
-        method_NBTTagCompound_getList=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,clazz_NBTTagList,new Class<?>[]{String.class,int.class},true).get(0);
-        method_NBTTagCompound_set=MethodUtil.getUnknowMethod(clazz_NBTTagCompound,void.class,new Class<?>[]{String.class,clazz_NBTBase},true).get(0);
-//        method_NBTTagList_add=MethodUtil.getUnknowMethod(clazz_NBTTagList,void.class,clazz_NBTBase,true).get(0);
-        method_NBTTagList_add=MethodUtil.getUnknowMethod(clazz_NBTTagList,boolean.class,clazz_NBTBase,true).get(0);
-        
-        field_NBTTagByte_value=FieldUtil.getField(clazz_NBTTagByte,byte.class,-1,true).get(0);
-        field_NBTTagShort_value=FieldUtil.getField(clazz_NBTTagShort,short.class,-1,true).get(0);
-        field_NBTTagInt_value=FieldUtil.getField(clazz_NBTTagInt,int.class,-1,true).get(0);
-        field_NBTTagFloat_value=FieldUtil.getField(clazz_NBTTagFloat,float.class,-1,true).get(0);
-        field_NBTTagDouble_value=FieldUtil.getField(clazz_NBTTagDouble,double.class,-1,true).get(0);
-        field_NBTTagLong_value=FieldUtil.getField(clazz_NBTTagLong,long.class,-1,true).get(0);
-        field_NBTTagString_value=FieldUtil.getField(clazz_NBTTagString,String.class,Modifier.PRIVATE,true).get(0);
-        field_NBTTagList_value=FieldUtil.getField(clazz_NBTTagList,List.class,-1,true).get(0);
-        field_NBTTagList_valueType=FieldUtil.getField(clazz_NBTTagList,byte.class,-1,true).get(0);
-        field_NBTTagByteArray_value=FieldUtil.getField(clazz_NBTTagByteArray,byte[].class,-1,true).get(0);
-        field_NBTTagIntArray_value=FieldUtil.getField(clazz_NBTTagIntArray,int[].class,-1,true).get(0);
-        field_NBTTagCompound_map=FieldUtil.getField(clazz_NBTTagCompound,Map.class,-1,true).get(0);
-        field_NMSItemStack_tag=FieldUtil.getField(NMSUtil.clazz_NMSItemStack,clazz_NBTTagCompound,-1,true).get(0);
+        method_NBTBase_getTypeId=MethodUtil.getDeclaredMethod(clazz_NBTBase,MethodFilter.rt(byte.class).noParam()).oneGet();
+        method_NBTBase_copy=MethodUtil.getDeclaredMethod(clazz_NBTBase,MethodFilter.rt(clazz_NBTBase).noParam()).oneGet();
+        method_NBTTagCompound_isEmpty=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rt(boolean.class).noParam()).oneGet();
+        method_NBTTagCompound_hasKeyOfType=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(boolean.class,String.class,int.class)).oneGet();
+        method_NBTTagCompound_get=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTBase,String.class)).oneGet();
+        method_NBTTagCompound_getInt=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(int.class,String.class)).oneGet();
+        method_NBTTagCompound_getString=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(String.class,String.class)).oneGet();
+        method_NBTTagCompound_getList=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTTagList,String.class,int.class)).oneGet();
+        method_NBTTagCompound_set=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(void.class,String.class,clazz_NBTBase)).oneGet();
+        if(MethodUtil.isDeclaredMethodExist(clazz_NBTTagList,MethodFilter.rpt(void.class,clazz_NBTBase))){
+            method_NBTTagList_add=MethodUtil.getDeclaredMethod(clazz_NBTTagList,MethodFilter.rpt(void.class,clazz_NBTBase)).oneGet();
+        }else{
+            // 1.13+
+            method_NBTTagList_add=MethodUtil.getDeclaredMethod(clazz_NBTTagList,MethodFilter.rpt(boolean.class,clazz_NBTBase)).oneGet();
+        }
+
+        field_NBTTagByte_value=FieldUtil.getDeclaredField(clazz_NBTTagByte,FieldFilter.t(byte.class)).oneGet();
+        field_NBTTagShort_value=FieldUtil.getDeclaredField(clazz_NBTTagShort,FieldFilter.t(short.class)).oneGet();
+        field_NBTTagInt_value=FieldUtil.getDeclaredField(clazz_NBTTagInt,FieldFilter.t(int.class)).oneGet();
+        field_NBTTagFloat_value=FieldUtil.getDeclaredField(clazz_NBTTagFloat,FieldFilter.t(float.class)).oneGet();
+        field_NBTTagDouble_value=FieldUtil.getDeclaredField(clazz_NBTTagDouble,FieldFilter.t(double.class)).oneGet();
+        field_NBTTagLong_value=FieldUtil.getDeclaredField(clazz_NBTTagLong,FieldFilter.t(long.class)).oneGet();
+        field_NBTTagString_value=FieldUtil.getDeclaredField(clazz_NBTTagString,FieldFilter.t(String.class).addPossModifer(Modifier.PRIVATE)).oneGet();
+        field_NBTTagList_value=FieldUtil.getDeclaredField(clazz_NBTTagList,FieldFilter.t(List.class)).oneGet();
+        field_NBTTagList_valueType=FieldUtil.getDeclaredField(clazz_NBTTagList,FieldFilter.t(byte.class)).oneGet();
+        field_NBTTagByteArray_value=FieldUtil.getDeclaredField(clazz_NBTTagByteArray,FieldFilter.t(byte[].class)).oneGet();
+        field_NBTTagIntArray_value=FieldUtil.getDeclaredField(clazz_NBTTagIntArray,FieldFilter.t(int[].class)).oneGet();
+        field_NBTTagCompound_map=FieldUtil.getDeclaredField(clazz_NBTTagCompound,FieldFilter.t(Map.class)).oneGet();
+        field_NMSItemStack_tag=FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(clazz_NBTTagCompound)).oneGet();
         // ItemStack
-        method_NMSItemStack_saveToNBT=MethodUtil.getUnknowMethod(NMSUtil.clazz_NMSItemStack,clazz_NBTTagCompound,clazz_NBTTagCompound,true).get(0);
-        ArrayList<Method> tMethods=MethodUtil.getUnknowMethod(NMSUtil.clazz_NMSItemStack,void.class,clazz_NBTTagCompound,true);
+        method_NMSItemStack_saveToNBT=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(clazz_NBTTagCompound,clazz_NBTTagCompound)).oneGet();
+        ArrayList<Method> tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(void.class,clazz_NBTTagCompound));
         int setTagMethodIndex=0;
         Object tTag=ClassUtil.newInstance(clazz_NBTTagCompound);
         Object tNMSItem=NMSUtil.getNMSItem(new ItemStack(Material.STONE,1,(short)0));
@@ -333,7 +339,9 @@ public class NBTUtil{
      * <p>
      * 注意,不判定{@link #NBT_Number}为一种类型
      * </p>
-     * @param pTypeId 类型id
+     * 
+     * @param pTypeId
+     *            类型id
      * @return NBT的类型,如果未找到,返回null
      */
     public static Class<?> getNBTTypeById(int pTypeId){
@@ -708,16 +716,8 @@ public class NBTUtil{
                         continue;
                     }
                 }
-                
-                Object tStoreTarget = null;
-                if(tDesEle.toString().equals("\"minecraft:empty\""))
-                {
-                    tStoreTarget=tSrcEle;
-                }
-                else {
-                    tStoreTarget=pRelaceDes?tSrcEle:tDesEle;
-                }
-
+                //Object tStoreTarget=pRelaceDes&&!tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
+                Object tStoreTarget=pRelaceDes||tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
                 tMixMapValue.put(sKey,NBTUtil.invokeNBTTagCopy(tStoreTarget));
             }
         }

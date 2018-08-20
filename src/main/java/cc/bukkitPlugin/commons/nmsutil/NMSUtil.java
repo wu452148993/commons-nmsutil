@@ -1,9 +1,13 @@
 package cc.bukkitPlugin.commons.nmsutil;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -12,13 +16,19 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import com.github.wulf.xmaterial.IMaterial;
+
 import cc.bukkitPlugin.commons.nmsutil.nbt.NBTKey;
 import cc.bukkitPlugin.commons.nmsutil.nbt.NBTSerializer;
 import cc.bukkitPlugin.commons.nmsutil.nbt.NBTUtil;
-import cc.commons.util.interfaces.IFilter;
+import cc.commons.util.ToolKit;
 import cc.commons.util.reflect.ClassUtil;
 import cc.commons.util.reflect.FieldUtil;
+import cc.commons.util.reflect.LookupUtil;
 import cc.commons.util.reflect.MethodUtil;
+import cc.commons.util.reflect.filter.FieldFilter;
+import cc.commons.util.reflect.filter.MethodFilter;
+import cc.commons.util.tools.CacheGettor;
 
 /**
  * 一个用于获取NMS类的类
@@ -27,12 +37,26 @@ import cc.commons.util.reflect.MethodUtil;
  */
 public class NMSUtil{
 
-    public static String mTestVersion="v1_7_R4";
-    /**
-     * MC版本,请勿直接获取,请使用{@link ClassUtil#getServerVersion()}来获取
-     */
-    @Deprecated
-    private static String mMCVersion;
+    public static String mTestAPIVersion="v1_7_R4";
+    /** BukkitAPI版本 */
+    private static CacheGettor<String> mAPIVersion=CacheGettor.create(()->{
+        if(Bukkit.getServer()!=null){
+            String className=Bukkit.getServer().getClass().getPackage().getName();
+            return className.substring(className.lastIndexOf('.')+1);
+        }else return mTestAPIVersion;
+    });
+    public static String mTestMCVersion="1.7.10";
+    /** Minecraft版本 */
+    private static CacheGettor<String> mMCVersion=CacheGettor.create(()->{
+        if(Bukkit.getServer()!=null){
+            String tVersionStr=Bukkit.getVersion();
+            //(MC: " + this.console.getVersion() + ")"
+            Matcher matcher=Pattern.compile("^.*?\\(MC: (.*?)\\)$").matcher(tVersionStr);
+            if(matcher.find())
+                return matcher.group(1);
+        }
+        return mTestMCVersion;
+    });
 
     /**
      * NMS类
@@ -44,10 +68,15 @@ public class NMSUtil{
     public static final Class<?> clazz_IInventory;
 
     public static final Method method_CraftItemStack_asNMSCopy;
+    public static final MethodHandle MH_CraftItemStack_asNMSCopy;
     public static final Method method_CraftItemStack_asCraftMirror;
+    public static final MethodHandle MH_CraftItemStack_asCraftMirror;
     public static final Method method_CraftPlayer_getHandle;
+    public static final MethodHandle MH_CraftPlayer_getHandle;
     public static final Method method_CraftEntity_getHandle;
+    public static final MethodHandle MH_CraftEntity_getHandle;
     public static final Method method_CraftWorld_getHandle;
+    public static final MethodHandle MH_CraftWorld_getHandle;
 
     /**
      * CraftBukkit类
@@ -59,48 +88,42 @@ public class NMSUtil{
     public static final Field field_CraftItemStack_handle;
 
     static{
-        // NMS ItemStack
+        // NMS ItemStck
         clazz_CraftItemStack=NMSUtil.getCBTClass("inventory.CraftItemStack");
-        method_CraftItemStack_asNMSCopy=MethodUtil.getMethod(clazz_CraftItemStack,"asNMSCopy",ItemStack.class,true);
+        Lookup tLookup=ClassUtil.newLookup(clazz_CraftItemStack);
+        method_CraftItemStack_asNMSCopy=MethodUtil.getDeclaredMethod(clazz_CraftItemStack,"asNMSCopy",ItemStack.class);
+        MH_CraftItemStack_asNMSCopy=LookupUtil.unreflect(tLookup,method_CraftItemStack_asNMSCopy);
+
         clazz_NMSItemStack=method_CraftItemStack_asNMSCopy.getReturnType();
-        method_CraftItemStack_asCraftMirror=MethodUtil.getMethod(clazz_CraftItemStack,"asCraftMirror",clazz_NMSItemStack,true);
-        field_CraftItemStack_handle=FieldUtil.getField(clazz_CraftItemStack,clazz_NMSItemStack,-1,true).get(0);
+        method_CraftItemStack_asCraftMirror=MethodUtil.getMethod(clazz_CraftItemStack,"asCraftMirror",clazz_NMSItemStack);
+        MH_CraftItemStack_asCraftMirror=LookupUtil.unreflect(tLookup,method_CraftItemStack_asCraftMirror);
+        field_CraftItemStack_handle=FieldUtil.getDeclaredField(clazz_CraftItemStack,FieldFilter.pt(clazz_NMSItemStack)).oneGet();
 
         clazz_CraftInventory=NMSUtil.getCBTClass("inventory.CraftInventory");
         Method method_CraftInventory_getInventory=MethodUtil.getMethod(clazz_CraftInventory,"getInventory",true);
         clazz_IInventory=method_CraftInventory_getInventory.getReturnType();
 
         Class<?> tEntityClazz=NMSUtil.getCBTClass("entity.CraftEntity");
-        method_CraftEntity_getHandle=MethodUtil.getMethod(tEntityClazz,"getHandle",true);
+        method_CraftEntity_getHandle=MethodUtil.getDeclaredMethod(tEntityClazz,"getHandle");
+        MH_CraftEntity_getHandle=LookupUtil.unreflect(method_CraftEntity_getHandle);
         clazz_NMSEntity=method_CraftEntity_getHandle.getReturnType();
 
         clazz_CraftPlayer=NMSUtil.getCBTClass("entity.CraftPlayer");
-        method_CraftPlayer_getHandle=MethodUtil.getMethod(clazz_CraftPlayer,new IFilter<Method>(){
-
-            @Override
-            public boolean accept(Method pObj){
-                // Birdge
-                return pObj.getName().equals("getHandle")&&(pObj.getModifiers()&0x00000040)==0;
-            }
-        },true).get(0);
+        method_CraftPlayer_getHandle=MethodUtil.getDeclaredMethod(clazz_CraftPlayer,MethodFilter.pn("getHandle")).oneGet();
+        MH_CraftPlayer_getHandle=LookupUtil.unreflect(method_CraftPlayer_getHandle);
         clazz_EntityPlayerMP=method_CraftPlayer_getHandle.getReturnType();
         clazz_EntityPlayer=clazz_EntityPlayerMP.getSuperclass();
 
         Class<?> tClazz=NMSUtil.getCBTClass("CraftWorld");
-        method_CraftWorld_getHandle=MethodUtil.getMethod(tClazz,"getHandle",true);
+        method_CraftWorld_getHandle=MethodUtil.getDeclaredMethod(tClazz,"getHandle");
+        MH_CraftWorld_getHandle=LookupUtil.unreflect(method_CraftWorld_getHandle);
     }
 
     /**
-     * 获取服务的Bukkit版本
+     * 获取服务的BukkitAPI版本
      */
-    public static String getServerVersion(){
-        if(mMCVersion==null){
-            if(Bukkit.getServer()!=null){
-                String className=Bukkit.getServer().getClass().getPackage().getName();
-                mMCVersion=className.substring(className.lastIndexOf('.')+1);
-            }else mMCVersion=mTestVersion;
-        }
-        return mMCVersion;
+    public static String getBukkitAPIVersion(){
+        return NMSUtil.mAPIVersion.get();
     }
 
     /**
@@ -111,7 +134,7 @@ public class NMSUtil{
      * @return 完整名字
      */
     public static String getCBTName(String pName){
-        return "org.bukkit.craftbukkit."+NMSUtil.getServerVersion()+"."+pName;
+        return "org.bukkit.craftbukkit."+NMSUtil.getBukkitAPIVersion()+"."+pName;
     }
 
     /**
@@ -132,7 +155,7 @@ public class NMSUtil{
      * @return 完整名字
      */
     public static String getNMSName(String pName){
-        return "net.minecraft.server."+NMSUtil.getServerVersion()+"."+pName;
+        return "net.minecraft.server."+NMSUtil.getBukkitAPIVersion()+"."+pName;
     }
 
     /**
@@ -181,24 +204,11 @@ public class NMSUtil{
      * @return NMS物品或null
      */
     public static Object asNMSItemCopy(ItemStack pItem){
-        return pItem==null?null:MethodUtil.invokeStaticMethod(method_CraftItemStack_asNMSCopy,pItem);
-    }
-
-    /**
-     * 判断两个物品所包装的NMS实例是否为同一个
-     * 
-     * @param pItem1
-     *            物品1
-     * @param pItem2
-     *            物品1
-     * @return 是否为同一个实例
-     */
-    public static Object isSameNMSItem(ItemStack pItem1,ItemStack pItem2){
-        if(pItem1==null||pItem2==null)
-            return false;
-        Object tNMSItem1=MethodUtil.invokeMethod(method_CraftEntity_getHandle,pItem1);
-        Object tNMSItem2=MethodUtil.invokeMethod(method_CraftEntity_getHandle,pItem2);
-        return tNMSItem1!=null&&tNMSItem2!=null&&tNMSItem1==tNMSItem2;
+        try{
+            return pItem==null?null:NMSUtil.MH_CraftItemStack_asNMSCopy.invoke(pItem);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -212,7 +222,12 @@ public class NMSUtil{
         if(!NMSUtil.clazz_NMSItemStack.isInstance(pNMSItem))
             return null;
 
-        Object tItem=MethodUtil.invokeStaticMethod(NMSUtil.method_CraftItemStack_asCraftMirror,pNMSItem);
+        Object tItem;
+        try{
+            tItem=NMSUtil.MH_CraftItemStack_asCraftMirror.invoke(pNMSItem);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
         return ItemStack.class.isInstance(tItem)?(ItemStack)tItem:null;
 
     }
@@ -232,8 +247,8 @@ public class NMSUtil{
         int tAmount=tItem.getAmount();
         tItem.setAmount(1);
 
-        Object nmsItem=NMSUtil.getNMSItem(tItem);
-        if(nmsItem==null||(tItem=NMSUtil.getCBTItem(nmsItem))==null)
+        Object tNMSItem=NMSUtil.getNMSItem(tItem);
+        if(tNMSItem==null||(tItem=NMSUtil.getCBTItem(tNMSItem))==null)
             return pItem;
 
         tItem.setAmount(tAmount);
@@ -254,6 +269,9 @@ public class NMSUtil{
         Object tNMSItem=NMSUtil.getNMSItem(pItem);
         Object tTag=null;
         if(tNMSItem!=null&&(tTag=NBTUtil.saveItemToNBT_NMS(tNMSItem))!=null){
+            if(ToolKit.compareVersion(NMSUtil.mMCVersion.get(),"1.13")>=0){
+                return tTag.toString();
+            }
             tContent=NBTUtil.getNBTTagCompoundValue(tTag);
             Object tItemNBT=tContent.remove(NBTKey.ItemTag);
             if(NBTUtil.isNBTTagCompound(tItemNBT)){
@@ -261,8 +279,8 @@ public class NMSUtil{
             }
         }else{
             tContent=new HashMap<>();
-            tContent.put(NBTKey.ItemId,pItem.getType()+"s");
-            tContent.put(NBTKey.ItemDamage,pItem.getType()+"s");
+            tContent.put(NBTKey.ItemId,IMaterial.fromMaterial(pItem.getType().toString())+"s");
+            tContent.put(NBTKey.ItemDamage,pItem.getDurability()+"s");
             tContent.put(NBTKey.ItemCount,pItem.getAmount()+"b");
         }
 
@@ -287,7 +305,11 @@ public class NMSUtil{
     public static Object getNMSPlayer(Player pPlayer){
         if(pPlayer!=null){
             if(NMSUtil.clazz_CraftPlayer.isInstance(pPlayer)){
-                return MethodUtil.invokeMethod(NMSUtil.method_CraftPlayer_getHandle,pPlayer);
+                try{
+                    return NMSUtil.MH_CraftPlayer_getHandle.invoke(pPlayer);
+                }catch(Throwable e){
+                    throw new IllegalStateException(e);
+                }
             }else{
                 return NMSUtil.getNMSEntity(pPlayer);
             }
@@ -297,7 +319,11 @@ public class NMSUtil{
 
     public static Object getNMSEntity(Entity pEntity){
         if(pEntity!=null&&NMSUtil.method_CraftEntity_getHandle.getDeclaringClass().isInstance(pEntity)){
-            return MethodUtil.invokeMethod(NMSUtil.method_CraftEntity_getHandle,pEntity);
+            try{
+                return NMSUtil.MH_CraftEntity_getHandle.invoke(pEntity);
+            }catch(Throwable e){
+                throw new IllegalStateException(e);
+            }
         }
         return null;
     }
@@ -311,7 +337,11 @@ public class NMSUtil{
      */
     public static Object getNMSWorld(World pWorld){
         if(pWorld!=null&&NMSUtil.method_CraftWorld_getHandle.getDeclaringClass().isInstance(pWorld)){
-            return MethodUtil.invokeMethod(NMSUtil.method_CraftWorld_getHandle,pWorld);
+            try{
+                return NMSUtil.MH_CraftWorld_getHandle.invoke(pWorld);
+            }catch(Throwable e){
+                throw new IllegalStateException(e);
+            }
         }
         return null;
     }

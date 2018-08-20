@@ -89,7 +89,7 @@ public class NBTUtil{
                 return pObj.getReturnType().getSimpleName().equals("NBTTagCompound")&&pObj.getParameterTypes().length==0;
             }
 
-        },true).oneGet();
+        },true).first();//.oneGet();
         clazz_NBTTagCompound=method_NMSItemStack_getTag.getReturnType();
         String tPacketPath=ClassUtil.getClassPacket(clazz_NBTTagCompound.getName());
         clazz_NBTBase=ClassUtil.getClass(tPacketPath+"NBTBase");
@@ -111,7 +111,7 @@ public class NBTUtil{
         method_NBTTagCompound_hasKeyOfType=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(boolean.class,String.class,int.class)).oneGet();
         method_NBTTagCompound_get=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTBase,String.class)).oneGet();
         method_NBTTagCompound_getInt=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(int.class,String.class)).oneGet();
-        method_NBTTagCompound_getString=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(String.class,String.class)).oneGet();
+        method_NBTTagCompound_getString=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(String.class,String.class).addDeniedModifer(Modifier.STATIC)).oneGet();
         method_NBTTagCompound_getList=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTTagList,String.class,int.class)).oneGet();
         method_NBTTagCompound_set=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(void.class,String.class,clazz_NBTBase)).oneGet();
         if(MethodUtil.isDeclaredMethodExist(clazz_NBTTagList,MethodFilter.rpt(void.class,clazz_NBTBase))){
@@ -717,7 +717,7 @@ public class NBTUtil{
                     }
                 }
                 //Object tStoreTarget=pRelaceDes&&!tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
-                Object tStoreTarget=pRelaceDes||tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
+                Object tStoreTarget=pRelaceDes||tDesEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
                 tMixMapValue.put(sKey,NBTUtil.invokeNBTTagCopy(tStoreTarget));
             }
         }

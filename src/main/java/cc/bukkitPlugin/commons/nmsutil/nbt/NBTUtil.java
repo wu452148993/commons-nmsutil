@@ -13,6 +13,8 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import cc.bukkitPlugin.commons.nmsutil.NMSUtil;
+import cc.commons.util.ToolKit;
+import cc.commons.util.extra.CList;
 import cc.commons.util.interfaces.IFilter;
 import cc.commons.util.reflect.ClassUtil;
 import cc.commons.util.reflect.FieldUtil;
@@ -82,14 +84,33 @@ public class NBTUtil{
     public static final Field field_NMSItemStack_tag;
 
     static{
-        method_NMSItemStack_getTag=MethodUtil.getMethod(NMSUtil.clazz_NMSItemStack,new IFilter<Method>(){
+     /*   method_NMSItemStack_getTag=MethodUtil.getMethod(NMSUtil.clazz_NMSItemStack,new IFilter<Method>(){
 
             @Override
             public boolean accept(Method pObj){
                 return pObj.getReturnType().getSimpleName().equals("NBTTagCompound")&&pObj.getParameterTypes().length==0;
             }
 
-        },true).first();//.oneGet();
+        },true).first();//.oneGet();*/
+        CList<Method> tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.c()
+                .noParam().addFilter((pMethod)->pMethod.getReturnType().getSimpleName().equals("NBTTagCompound")));
+        if(tMethods.onlyOne()){
+            method_NMSItemStack_getTag=tMethods.oneGet();
+        }else{
+            int tPos=-1;
+            Object tNMSItem=NMSUtil.getNMSItem(new ItemStack(Material.STONE));
+            Field tField=FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(tMethods.first().getReturnType())).oneGet();
+            for(int i=tMethods.size()-1;i>=0;i--){
+                FieldUtil.setFieldValue(tField,tNMSItem,(Object)null);
+                if(MethodUtil.invokeMethod(tMethods.get(i),tNMSItem)==null){
+                    tPos=i;
+                    break;
+                }
+            }
+            method_NMSItemStack_getTag=tPos!=-1?tMethods.get(tPos):null;
+            if(tPos==-1) throw new IllegalStateException("Cann't init nbtutil");
+        }
+        
         clazz_NBTTagCompound=method_NMSItemStack_getTag.getReturnType();
         String tPacketPath=ClassUtil.getClassPacket(clazz_NBTTagCompound.getName());
         clazz_NBTBase=ClassUtil.getClass(tPacketPath+"NBTBase");
@@ -136,7 +157,7 @@ public class NBTUtil{
         field_NMSItemStack_tag=FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(clazz_NBTTagCompound)).oneGet();
         // ItemStack
         method_NMSItemStack_saveToNBT=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(clazz_NBTTagCompound,clazz_NBTTagCompound)).oneGet();
-        ArrayList<Method> tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(void.class,clazz_NBTTagCompound));
+        tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(void.class,clazz_NBTTagCompound));
         int setTagMethodIndex=0;
         Object tTag=ClassUtil.newInstance(clazz_NBTTagCompound);
         Object tNMSItem=NMSUtil.getNMSItem(new ItemStack(Material.STONE,1,(short)0));
@@ -669,6 +690,7 @@ public class NBTUtil{
         return (int[])FieldUtil.getFieldValue(NBTUtil.field_NBTTagIntArray_value,pNBTTagIntArray);
     }
 
+    private static boolean EMPTY_NBTSTRING=ToolKit.compareVersion(NMSUtil.getMinecraftVersion(),"1.13")>=0;
     /**
      * 混合两个NBTTagCompound,并将混合结果放置打新的NBTTagCompound中
      * <p>
@@ -717,7 +739,15 @@ public class NBTUtil{
                     }
                 }
                 //Object tStoreTarget=pRelaceDes&&!tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
-                Object tStoreTarget=pRelaceDes||tDesEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
+                //Object tStoreTarget=pRelaceDes||tDesEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
+                Object tStoreTarget=null;
+                if(NBTUtil.isNBTTagString(tSrcEle)&&tSrcEle.toString().equals("\"minecraft:empty\"")){
+                    tStoreTarget=tDesEle;
+                }else if(NBTUtil.isNBTTagString(tDesEle)&&tDesEle.toString().equals("\"minecraft:empty\"")){
+                    tStoreTarget=tSrcEle;
+                }else{
+                    tStoreTarget=pRelaceDes?tSrcEle:tDesEle;
+                }
                 tMixMapValue.put(sKey,NBTUtil.invokeNBTTagCopy(tStoreTarget));
             }
         }

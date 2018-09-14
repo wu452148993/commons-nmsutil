@@ -86,6 +86,7 @@ public class NMSUtil{
     public static final Class<?> clazz_CraftPlayer;
 
     public static final Field field_CraftItemStack_handle;
+    protected static final MethodHandle Getter_CraftItemStack_handle;
 
     static{
         // NMS ItemStck
@@ -98,6 +99,7 @@ public class NMSUtil{
         method_CraftItemStack_asCraftMirror=MethodUtil.getMethod(clazz_CraftItemStack,"asCraftMirror",clazz_NMSItemStack);
         MH_CraftItemStack_asCraftMirror=LookupUtil.unreflect(tLookup,method_CraftItemStack_asCraftMirror);
         field_CraftItemStack_handle=FieldUtil.getDeclaredField(clazz_CraftItemStack,FieldFilter.pt(clazz_NMSItemStack)).oneGet();
+        Getter_CraftItemStack_handle=LookupUtil.unreflectGetter(field_CraftItemStack_handle);
 
         clazz_CraftInventory=NMSUtil.getCBTClass("inventory.CraftInventory");
         Method method_CraftInventory_getInventory=MethodUtil.getMethod(clazz_CraftInventory,"getInventory",true);
@@ -129,7 +131,7 @@ public class NMSUtil{
     public static String getMinecraftVersion(){
         return NMSUtil.mMCVersion.get();
     }
-    
+
     /**
      * 获取org.bukkit.craftbukkit类的全名
      * 
@@ -197,7 +199,11 @@ public class NMSUtil{
      * @return NMS物品或null
      */
     public static Object getItemHandle(ItemStack pItem){
-        return field_CraftItemStack_handle.getDeclaringClass().isInstance(pItem)?FieldUtil.getFieldValue(field_CraftItemStack_handle,pItem):null;
+        try{
+            return field_CraftItemStack_handle.getDeclaringClass().isInstance(pItem)?Getter_CraftItemStack_handle.invoke(pItem):null;
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package cc.bukkitPlugin.commons.nmsutil.nbt;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -15,9 +16,9 @@ import org.bukkit.inventory.ItemStack;
 import cc.bukkitPlugin.commons.nmsutil.NMSUtil;
 import cc.commons.util.ToolKit;
 import cc.commons.util.extra.CList;
-import cc.commons.util.interfaces.IFilter;
 import cc.commons.util.reflect.ClassUtil;
 import cc.commons.util.reflect.FieldUtil;
+import cc.commons.util.reflect.LookupUtil;
 import cc.commons.util.reflect.MethodUtil;
 import cc.commons.util.reflect.filter.FieldFilter;
 import cc.commons.util.reflect.filter.MethodFilter;
@@ -51,48 +52,69 @@ public class NBTUtil{
     public static final Class<?> clazz_NBTTagString;
     public static final Class<?> clazz_NBTTagList;
     public static final Class<?> clazz_NBTTagCompound;
+    protected static final MethodHandle Constructor_NBTTagCompound;
     public static final Class<?> clazz_NBTTagIntArray;
 
     public static final Method method_NMSItemStack_getTag;
+    protected static final MethodHandle MH_NMSItemStack_getTag;
     public static final Method method_NMSItemStack_setTag;
+    protected static final MethodHandle MH_NMSItemStack_setTag;
     public static final Method method_NMSItemStack_saveToNBT;
+    protected static final MethodHandle MH_NMSItemStack_saveToNBT;
     public static final Method method_NMSItemStack_loadFromNBT;
+    protected static final MethodHandle MH_NMSItemStack_loadFromNBT;
 
     public static final Method method_NBTBase_getTypeId;
+    protected static final MethodHandle MH_NBTBase_getTypeId;
     public static final Method method_NBTBase_copy;
+    protected static final MethodHandle MH_NBTBase_copy;
     public static final Method method_NBTTagCompound_isEmpty;
+    protected static final MethodHandle MH_NBTTagCompound_isEmpty;
     public static final Method method_NBTTagCompound_hasKeyOfType;
+    protected static final MethodHandle MH_NBTTagCompound_hasKeyOfType;
     public static final Method method_NBTTagCompound_get;
+    protected static final MethodHandle MH_NBTTagCompound_get;
     public static final Method method_NBTTagCompound_getInt;
+    protected static final MethodHandle MH_NBTTagCompound_getInt;
     public static final Method method_NBTTagCompound_getString;
+    protected static final MethodHandle MH_NBTTagCompound_getString;
     public static final Method method_NBTTagCompound_getList;
+    protected static final MethodHandle MH_NBTTagCompound_getList;
     public static final Method method_NBTTagCompound_set;
+    protected static final MethodHandle MH_NBTTagCompound_set;
     public static final Method method_NBTTagList_add;
+    protected static final MethodHandle MH_NBTTagList_add;
 
     public static final Field field_NBTTagString_value;
+    protected static final MethodHandle Getter_NBTTagString_value;
     public static final Field field_NBTTagByte_value;
+    protected static final MethodHandle Getter_NBTTagByte_value;
     public static final Field field_NBTTagShort_value;
+    protected static final MethodHandle Getter_NBTTagShort_value;
     public static final Field field_NBTTagInt_value;
+    protected static final MethodHandle Getter_NBTTagInt_value;
     public static final Field field_NBTTagFloat_value;
+    protected static final MethodHandle Getter_NBTTagFloat_value;
     public static final Field field_NBTTagDouble_value;
+    protected static final MethodHandle Getter_NBTTagDouble_value;
     public static final Field field_NBTTagLong_value;
+    protected static final MethodHandle Getter_NBTTagLong_value;
     public static final Field field_NBTTagList_value;
+    protected static final MethodHandle Getter_NBTTagList_value;
     public static final Field field_NBTTagList_valueType;
+    protected static final MethodHandle Getter_NBTTagList_valueType;
     public static final Field field_NBTTagByteArray_value;
+    protected static final MethodHandle Getter_NBTTagByteArray_value;
     public static final Field field_NBTTagIntArray_value;
+    protected static final MethodHandle Getter_NBTTagIntArray_value;
     public static final Field field_NBTTagCompound_map;
+    protected static final MethodHandle Getter_NBTTagCompound_map;
     public static final Field field_NMSItemStack_tag;
+    protected static final MethodHandle Getter_NMSItemStack_tag;
+    protected static final MethodHandle Setter_NMSItemStack_tag;
 
     static{
-     /*   method_NMSItemStack_getTag=MethodUtil.getMethod(NMSUtil.clazz_NMSItemStack,new IFilter<Method>(){
-
-            @Override
-            public boolean accept(Method pObj){
-                return pObj.getReturnType().getSimpleName().equals("NBTTagCompound")&&pObj.getParameterTypes().length==0;
-            }
-
-        },true).first();//.oneGet();*/
-    	Field tNMSItem_Tag=null;
+        Field tNMSItem_Tag=null;
         CList<Method> tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.c()
                 .noParam().addFilter((pMethod)->pMethod.getReturnType().getSimpleName().equals("NBTTagCompound")));
         if(tMethods.onlyOne()){
@@ -107,7 +129,7 @@ public class NBTUtil{
                 FieldUtil.setFieldValue(tFields.get(i),tNMSItem,tTag);
 
                 for(int j=tMethods.size()-1;j>=0;j--){
-                	if(MethodUtil.invokeMethod(tMethods.get(j),tNMSItem)==tTag){
+                    if(MethodUtil.invokeMethod(tMethods.get(j),tNMSItem)==tTag){
                         tPos=j;
                         tNMSItem_Tag=tFields.get(i);
                         i=-1;
@@ -115,11 +137,14 @@ public class NBTUtil{
                     }
                 }
             }
+
             method_NMSItemStack_getTag=tPos!=-1?tMethods.get(tPos):null;
             if(tPos==-1) throw new IllegalStateException("Cann't init nbtutil");
         }
-        
+        MH_NMSItemStack_getTag=LookupUtil.unreflect(method_NMSItemStack_getTag);
+
         clazz_NBTTagCompound=method_NMSItemStack_getTag.getReturnType();
+        Constructor_NBTTagCompound=LookupUtil.unreflectConstructor(ClassUtil.getConstrouctor(clazz_NBTTagCompound));
         String tPacketPath=ClassUtil.getClassPacket(clazz_NBTTagCompound.getName());
         clazz_NBTBase=ClassUtil.getClass(tPacketPath+"NBTBase");
         clazz_NBTTagByte=ClassUtil.getClass(tPacketPath+"NBTTagByte");
@@ -135,37 +160,67 @@ public class NBTUtil{
         clazz_NBTTagList=ClassUtil.getClass(tPacketPath+"NBTTagList");
 
         method_NBTBase_getTypeId=MethodUtil.getDeclaredMethod(clazz_NBTBase,MethodFilter.rt(byte.class).noParam()).oneGet();
+        MH_NBTBase_getTypeId=LookupUtil.unreflect(method_NBTBase_getTypeId);
         method_NBTBase_copy=MethodUtil.getDeclaredMethod(clazz_NBTBase,MethodFilter.rt(clazz_NBTBase).noParam()).oneGet();
+        MH_NBTBase_copy=LookupUtil.unreflect(method_NBTBase_copy);
         method_NBTTagCompound_isEmpty=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rt(boolean.class).noParam()).oneGet();
-        method_NBTTagCompound_hasKeyOfType=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(boolean.class,String.class,int.class)).oneGet();
+        MH_NBTTagCompound_isEmpty=LookupUtil.unreflect(method_NBTTagCompound_isEmpty);
+        method_NBTTagCompound_hasKeyOfType=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,
+                MethodFilter.rpt(boolean.class,String.class,int.class)).oneGet();
+        MH_NBTTagCompound_hasKeyOfType=LookupUtil.unreflect(method_NBTTagCompound_hasKeyOfType);
         method_NBTTagCompound_get=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTBase,String.class)).oneGet();
+        MH_NBTTagCompound_get=LookupUtil.unreflect(method_NBTTagCompound_get);
         method_NBTTagCompound_getInt=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(int.class,String.class)).oneGet();
-        method_NBTTagCompound_getString=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(String.class,String.class).addDeniedModifer(Modifier.STATIC)).oneGet();
-        method_NBTTagCompound_getList=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(clazz_NBTTagList,String.class,int.class)).oneGet();
-        method_NBTTagCompound_set=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,MethodFilter.rpt(void.class,String.class,clazz_NBTBase)).oneGet();
+        MH_NBTTagCompound_getInt=LookupUtil.unreflect(method_NBTTagCompound_getInt);
+        method_NBTTagCompound_getString=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,
+                MethodFilter.rpt(String.class,String.class).addDeniedModifer(Modifier.STATIC)).oneGet();
+        MH_NBTTagCompound_getString=LookupUtil.unreflect(method_NBTTagCompound_getString);
+        method_NBTTagCompound_getList=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,
+                MethodFilter.rpt(clazz_NBTTagList,String.class,int.class)).oneGet();
+        MH_NBTTagCompound_getList=LookupUtil.unreflect(method_NBTTagCompound_getList);
+        method_NBTTagCompound_set=MethodUtil.getDeclaredMethod(clazz_NBTTagCompound,
+                MethodFilter.rpt(void.class,String.class,clazz_NBTBase)).oneGet();
+        MH_NBTTagCompound_set=LookupUtil.unreflect(method_NBTTagCompound_set);
         if(MethodUtil.isDeclaredMethodExist(clazz_NBTTagList,MethodFilter.rpt(void.class,clazz_NBTBase))){
             method_NBTTagList_add=MethodUtil.getDeclaredMethod(clazz_NBTTagList,MethodFilter.rpt(void.class,clazz_NBTBase)).oneGet();
         }else{
             // 1.13+
             method_NBTTagList_add=MethodUtil.getDeclaredMethod(clazz_NBTTagList,MethodFilter.rpt(boolean.class,clazz_NBTBase)).oneGet();
         }
+        MH_NBTTagList_add=LookupUtil.unreflect(method_NBTTagList_add);
 
         field_NBTTagByte_value=FieldUtil.getDeclaredField(clazz_NBTTagByte,FieldFilter.t(byte.class)).oneGet();
+        Getter_NBTTagByte_value=LookupUtil.unreflectGetter(field_NBTTagByte_value);
         field_NBTTagShort_value=FieldUtil.getDeclaredField(clazz_NBTTagShort,FieldFilter.t(short.class)).oneGet();
+        Getter_NBTTagShort_value=LookupUtil.unreflectGetter(field_NBTTagShort_value);
         field_NBTTagInt_value=FieldUtil.getDeclaredField(clazz_NBTTagInt,FieldFilter.t(int.class)).oneGet();
+        Getter_NBTTagInt_value=LookupUtil.unreflectGetter(field_NBTTagInt_value);
         field_NBTTagFloat_value=FieldUtil.getDeclaredField(clazz_NBTTagFloat,FieldFilter.t(float.class)).oneGet();
+        Getter_NBTTagFloat_value=LookupUtil.unreflectGetter(field_NBTTagFloat_value);
         field_NBTTagDouble_value=FieldUtil.getDeclaredField(clazz_NBTTagDouble,FieldFilter.t(double.class)).oneGet();
+        Getter_NBTTagDouble_value=LookupUtil.unreflectGetter(field_NBTTagDouble_value);
         field_NBTTagLong_value=FieldUtil.getDeclaredField(clazz_NBTTagLong,FieldFilter.t(long.class)).oneGet();
-        field_NBTTagString_value=FieldUtil.getDeclaredField(clazz_NBTTagString,FieldFilter.t(String.class).addPossModifer(Modifier.PRIVATE).addDeniedModifer(Modifier.STATIC)).oneGet();
+        Getter_NBTTagLong_value=LookupUtil.unreflectGetter(field_NBTTagLong_value);
+        field_NBTTagString_value=FieldUtil.getDeclaredField(clazz_NBTTagString,
+                FieldFilter.t(String.class).addPossModifer(Modifier.PRIVATE).addDeniedModifer(Modifier.STATIC)).oneGet();
+        Getter_NBTTagString_value=LookupUtil.unreflectGetter(field_NBTTagString_value);
         field_NBTTagList_value=FieldUtil.getDeclaredField(clazz_NBTTagList,FieldFilter.t(List.class)).oneGet();
+        Getter_NBTTagList_value=LookupUtil.unreflectGetter(field_NBTTagList_value);
         field_NBTTagList_valueType=FieldUtil.getDeclaredField(clazz_NBTTagList,FieldFilter.t(byte.class)).oneGet();
+        Getter_NBTTagList_valueType=LookupUtil.unreflectGetter(field_NBTTagList_valueType);
         field_NBTTagByteArray_value=FieldUtil.getDeclaredField(clazz_NBTTagByteArray,FieldFilter.t(byte[].class)).oneGet();
+        Getter_NBTTagByteArray_value=LookupUtil.unreflectGetter(field_NBTTagByteArray_value);
         field_NBTTagIntArray_value=FieldUtil.getDeclaredField(clazz_NBTTagIntArray,FieldFilter.t(int[].class)).oneGet();
+        Getter_NBTTagIntArray_value=LookupUtil.unreflectGetter(field_NBTTagIntArray_value);
         field_NBTTagCompound_map=FieldUtil.getDeclaredField(clazz_NBTTagCompound,FieldFilter.t(Map.class)).oneGet();
-        //field_NMSItemStack_tag=FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(clazz_NBTTagCompound)).oneGet();
-        field_NMSItemStack_tag=tNMSItem_Tag!=null?tNMSItem_Tag:FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(clazz_NBTTagCompound)).oneGet();
+        Getter_NBTTagCompound_map=LookupUtil.unreflectGetter(field_NBTTagCompound_map);
+        field_NMSItemStack_tag=tNMSItem_Tag!=null?tNMSItem_Tag
+                :FieldUtil.getDeclaredField(NMSUtil.clazz_NMSItemStack,FieldFilter.t(clazz_NBTTagCompound)).oneGet();
+        Getter_NMSItemStack_tag=LookupUtil.unreflectGetter(field_NMSItemStack_tag);
+        Setter_NMSItemStack_tag=LookupUtil.unreflectSetter(field_NMSItemStack_tag);
         // ItemStack
         method_NMSItemStack_saveToNBT=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(clazz_NBTTagCompound,clazz_NBTTagCompound)).oneGet();
+        MH_NMSItemStack_saveToNBT=LookupUtil.unreflect(method_NMSItemStack_saveToNBT);
         tMethods=MethodUtil.getDeclaredMethod(NMSUtil.clazz_NMSItemStack,MethodFilter.rpt(void.class,clazz_NBTTagCompound));
         int setTagMethodIndex=0;
         Object tTag=ClassUtil.newInstance(clazz_NBTTagCompound);
@@ -175,7 +230,9 @@ public class NBTUtil{
             setTagMethodIndex=1;
         }
         method_NMSItemStack_setTag=tMethods.get(setTagMethodIndex);
+        MH_NMSItemStack_setTag=LookupUtil.unreflect(method_NMSItemStack_setTag);
         method_NMSItemStack_loadFromNBT=tMethods.get(1-setTagMethodIndex);
+        MH_NMSItemStack_loadFromNBT=LookupUtil.unreflect(method_NMSItemStack_loadFromNBT);
     }
 
     /**
@@ -199,7 +256,13 @@ public class NBTUtil{
     public static Object getItemNBT_NMS(Object pNMSItem){
         if(pNMSItem==null)
             return NBTUtil.newNBTTagCompound();
-        Object tTag=FieldUtil.getFieldValue(NBTUtil.field_NMSItemStack_tag,pNMSItem);
+
+        Object tTag;
+        try{
+            tTag=Getter_NMSItemStack_tag.invoke(pNMSItem);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
         if(tTag==null){
             tTag=NBTUtil.newNBTTagCompound();
             NBTUtil.setItemNBT_NMS(pNMSItem,tTag);
@@ -238,9 +301,13 @@ public class NBTUtil{
      *            NBT
      */
     public static void setItemNBT_NMS(Object pNMSItem,Object pNBTTag){
-        if(pNMSItem==null)
-            return;
-        FieldUtil.setFieldValue(NBTUtil.field_NMSItemStack_tag,pNMSItem,pNBTTag);
+        if(pNMSItem==null) return;
+
+        try{
+            Setter_NMSItemStack_tag.invoke(pNMSItem,pNBTTag);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -263,10 +330,13 @@ public class NBTUtil{
      */
     public static Object saveItemToNBT_NMS(Object pNMSItem){
         Object tTag=NBTUtil.newNBTTagCompound();
-        if(pNMSItem==null){
-            return tTag;
+        if(pNMSItem==null) return tTag;
+
+        try{
+            MH_NMSItemStack_saveToNBT.invoke(pNMSItem,tTag);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
         }
-        MethodUtil.invokeMethod(NBTUtil.method_NMSItemStack_saveToNBT,pNMSItem,tTag);
         return tTag;
     }
 
@@ -361,7 +431,11 @@ public class NBTUtil{
      */
     @SuppressWarnings("unchecked")
     public static byte getNBTTagTypeId(Object pNBTTag){
-        return (byte)MethodUtil.invokeMethod(NBTUtil.method_NBTBase_getTypeId,pNBTTag);
+        try{
+            return (byte)MH_NBTBase_getTypeId.invoke(pNBTTag);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -406,7 +480,11 @@ public class NBTUtil{
     }
 
     public static Object invokeNBTTagCopy(Object pNBTTag){
-        return MethodUtil.invokeMethod(NBTUtil.method_NBTBase_copy,pNBTTag);
+        try{
+            return MH_NBTBase_copy.invoke(pNBTTag);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagEnd(){
@@ -427,7 +505,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static byte getNBTTagByteValue(Object pNBTTagByte){
-        return (byte)FieldUtil.getFieldValue(NBTUtil.field_NBTTagByte_value,pNBTTagByte);
+        try{
+            return (byte)Getter_NBTTagByte_value.invoke(pNBTTagByte);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagShort(short pValue){
@@ -440,7 +522,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static short getNBTTagShortValue(Object pNBTTagShort){
-        return (short)FieldUtil.getFieldValue(NBTUtil.field_NBTTagShort_value,pNBTTagShort);
+        try{
+            return (short)Getter_NBTTagShort_value.invoke(pNBTTagShort);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagInt(int pValue){
@@ -453,7 +539,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static int getNBTTagIntValue(Object pNBTTagInt){
-        return (int)FieldUtil.getFieldValue(NBTUtil.field_NBTTagInt_value,pNBTTagInt);
+        try{
+            return (int)Getter_NBTTagInt_value.invoke(pNBTTagInt);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagLong(long pValue){
@@ -466,7 +556,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static long getNBTTagLongValue(Object pNBTTagLong){
-        return (long)FieldUtil.getFieldValue(NBTUtil.field_NBTTagLong_value,pNBTTagLong);
+        try{
+            return (long)Getter_NBTTagLong_value.invoke(pNBTTagLong);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagFloat(float pValue){
@@ -479,7 +573,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static float getNBTTagFloatValue(Object pNBTTagFloat){
-        return (float)FieldUtil.getFieldValue(NBTUtil.field_NBTTagFloat_value,pNBTTagFloat);
+        try{
+            return (float)Getter_NBTTagFloat_value.invoke(pNBTTagFloat);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagDouble(double pValue){
@@ -492,7 +590,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static double getNBTTagDoubleValue(Object pNBTTagDouble){
-        return (double)FieldUtil.getFieldValue(NBTUtil.field_NBTTagDouble_value,pNBTTagDouble);
+        try{
+            return (double)Getter_NBTTagDouble_value.invoke(pNBTTagDouble);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagByteArray(byte[] pValue){
@@ -505,7 +607,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static byte[] getNBTTagByteArrayValue(Object pNBTTagByteArray){
-        return (byte[])FieldUtil.getFieldValue(NBTUtil.field_NBTTagByteArray_value,pNBTTagByteArray);
+        try{
+            return (byte[])Getter_NBTTagByteArray_value.invoke(pNBTTagByteArray);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagString(String pValue){
@@ -518,7 +624,11 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static String getNBTTagStringValue(Object pNBTTagString){
-        return (String)FieldUtil.getFieldValue(NBTUtil.field_NBTTagString_value,pNBTTagString);
+        try{
+            return (String)Getter_NBTTagString_value.invoke(pNBTTagString);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagList(){
@@ -541,7 +651,12 @@ public class NBTUtil{
         if(pNBTTagList==null){
             return new ArrayList<>(0);
         }
-        return (List<Object>)FieldUtil.getFieldValue(NBTUtil.field_NBTTagList_value,pNBTTagList);
+
+        try{
+            return (List<Object>)Getter_NBTTagList_value.invoke(pNBTTagList);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -553,7 +668,11 @@ public class NBTUtil{
      *            要添加的内容,必须是NBTBase的实例
      */
     public static void invokeNBTTagList_add(Object pNBTTagList,Object pNBTBase){
-        MethodUtil.invokeMethod(NBTUtil.method_NBTTagList_add,pNBTTagList,pNBTBase);
+        try{
+            MH_NBTTagList_add.invoke(pNBTBase);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Class<?> getNBTTagListValueType(Object pNBTList){
@@ -561,7 +680,12 @@ public class NBTUtil{
         if(!tListValue.isEmpty()){
             return tListValue.get(0).getClass();
         }else{
-            int tId=(byte)FieldUtil.getFieldValue(field_NBTTagList_valueType,pNBTList);
+            int tId;
+            try{
+                tId=(byte)Getter_NBTTagList_valueType.invoke(pNBTList);
+            }catch(Throwable e){
+                throw new IllegalStateException(e);
+            }
             return tId==0?null:NBTUtil.getNBTTypeById(tId);
         }
     }
@@ -588,25 +712,15 @@ public class NBTUtil{
      */
     @SuppressWarnings("unchecked")
     public static Map<String,Object> getNBTTagCompoundValue(Object pNBTTagCompound){
-        if(pNBTTagCompound==null){
-            return new HashMap<>(0);
-        }
-        return (Map<String,Object>)FieldUtil.getFieldValue(NBTUtil.field_NBTTagCompound_map,pNBTTagCompound);
-    }
-
-    /**
-     * 获取类类型为NBTTagCompound的值域Map
-     *
-     * @param pNBTTagCompound
-     *            实例,不是NBTTagCompound类型时,将返回一个空的Map
-     * @return Map,非null
-     */
-    @SuppressWarnings("unchecked")
-    public static Map<String,Object> getNBTTagCompoundValueSafe(Object pNBTTagCompound){
         if(!NBTUtil.isNBTTagCompound(pNBTTagCompound)){
             return new HashMap<>(0);
         }
-        return (Map<String,Object>)FieldUtil.getFieldValue(NBTUtil.field_NBTTagCompound_map,pNBTTagCompound);
+
+        try{
+            return (Map<String,Object>)Getter_NBTTagCompound_map.invoke(pNBTTagCompound);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -619,17 +733,32 @@ public class NBTUtil{
      * @return 值或null
      */
     public static Object invokeNBTTagCompound_get(Object pNBTTagCompound,String pKey){
-        return pNBTTagCompound==null?null:MethodUtil.invokeMethod(NBTUtil.method_NBTTagCompound_get,pNBTTagCompound,pKey);
+        if(pNBTTagCompound==null) return null;
+        try{
+            return MH_NBTTagCompound_get.invoke(pNBTTagCompound,pKey);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
     public static String invokeNBTTagCompound_getString(Object pNBTTagCompound,String pKey){
-        return pNBTTagCompound==null?null:(String)MethodUtil.invokeMethod(NBTUtil.method_NBTTagCompound_getString,pNBTTagCompound,pKey);
+        if(pNBTTagCompound==null) return null;
+        try{
+            return (String)MH_NBTTagCompound_getString.invoke(pNBTTagCompound,pKey);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
     public static int invokeNBTTagCompound_getInt(Object pNBTTagCompound,String pKey){
-        return pNBTTagCompound==null?0:(int)MethodUtil.invokeMethod(NBTUtil.method_NBTTagCompound_getInt,pNBTTagCompound,pKey);
+        if(pNBTTagCompound==null) return 0;
+        try{
+            return (int)MH_NBTTagCompound_getInt.invoke(pNBTTagCompound,pKey);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -644,7 +773,12 @@ public class NBTUtil{
      * @return NBTTagList实例或null
      */
     public static Object invokeNBTTagCompound_getList(Object pNBTTagCompound,String pKey,int pNBTType){
-        return pNBTTagCompound==null?null:MethodUtil.invokeMethod(NBTUtil.method_NBTTagCompound_getList,pNBTTagCompound,new Object[]{pKey,pNBTType});
+        if(pNBTTagCompound==null) return null;
+        try{
+            return MH_NBTTagCompound_getList.invoke(pNBTTagCompound,pKey,pNBTType);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -658,7 +792,12 @@ public class NBTUtil{
      *            NBTBase实例
      */
     public static void invokeNBTTagCompound_set(Object pNBTTagCompound,String pKey,Object pNBTBase){
-        MethodUtil.invokeMethod(NBTUtil.method_NBTTagCompound_set,pNBTTagCompound,new Object[]{pKey,pNBTBase});
+        if(pNBTTagCompound==null) return;
+        try{
+            MH_NBTTagCompound_set.invoke(pNBTTagCompound,pKey,pNBTBase);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -683,7 +822,11 @@ public class NBTUtil{
      * @return 克隆的NBTTagCompound,或新的空NBTTagCompound
      */
     public static Object invokeNBTTagCompound_clone(Object pNBTTagCompound){
-        return pNBTTagCompound==null?NBTUtil.newNBTTagCompound():MethodUtil.invokeMethod(NBTUtil.method_NBTBase_copy,pNBTTagCompound);
+        try{
+            return pNBTTagCompound==null?NBTUtil.newNBTTagCompound():MH_NBTBase_copy.invoke(pNBTTagCompound);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     public static Object newNBTTagIntArray(int[] pValue){
@@ -696,10 +839,15 @@ public class NBTUtil{
 
     @SuppressWarnings("unchecked")
     public static int[] getNBTTagIntArrayValue(Object pNBTTagIntArray){
-        return (int[])FieldUtil.getFieldValue(NBTUtil.field_NBTTagIntArray_value,pNBTTagIntArray);
+        try{
+            return (int[])Getter_NBTTagIntArray_value.invoke(pNBTTagIntArray);
+        }catch(Throwable e){
+            throw new IllegalStateException(e);
+        }
     }
 
     private static boolean EMPTY_NBTSTRING=ToolKit.compareVersion(NMSUtil.getMinecraftVersion(),"1.13")>=0;
+
     /**
      * 混合两个NBTTagCompound,并将混合结果放置打新的NBTTagCompound中
      * <p>
@@ -718,8 +866,8 @@ public class NBTUtil{
     public static Object mixNBT(Object pNBTTagDes,Object pNBTTagSrc,boolean pRelaceDes){
         Object tNewTag=NBTUtil.newNBTTagCompound();
         Map<String,Object> tMixMapValue=NBTUtil.getNBTTagCompoundValue(tNewTag);
-        Map<String,Object> tDesMapValue=NBTUtil.getNBTTagCompoundValueSafe(pNBTTagDes);
-        Map<String,Object> tSrcMapValue=NBTUtil.getNBTTagCompoundValueSafe(pNBTTagSrc);
+        Map<String,Object> tDesMapValue=NBTUtil.getNBTTagCompoundValue(pNBTTagDes);
+        Map<String,Object> tSrcMapValue=NBTUtil.getNBTTagCompoundValue(pNBTTagSrc);
         HashSet<String> tKeys=new HashSet<>(tDesMapValue.keySet());
         tKeys.addAll(tSrcMapValue.keySet());
         for(String sKey : tKeys){
@@ -747,8 +895,6 @@ public class NBTUtil{
                         continue;
                     }
                 }
-                //Object tStoreTarget=pRelaceDes&&!tSrcEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
-                //Object tStoreTarget=pRelaceDes||tDesEle.toString().equals("\"minecraft:empty\"")?tSrcEle:tDesEle;
                 Object tStoreTarget=null;
                 if(NBTUtil.isNBTTagString(tSrcEle)&&tSrcEle.toString().equals("\"minecraft:empty\"")){
                     tStoreTarget=tDesEle;
@@ -762,4 +908,5 @@ public class NBTUtil{
         }
         return tNewTag;
     }
+
 }
